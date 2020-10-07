@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using SpeedRegistry.Business.ControllerServices;
@@ -23,6 +24,13 @@ namespace SpeedRegistry.Controllers
         public IEnumerable<SpeedEntryDto> Get()
         {
             return new SpeedEntryDto[] { new SpeedEntryDto() { Speed = 12.2f } };
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> PostAsync()
+        {
+            await _speedControllerService.SaveSomeSpeedEntriesAsync();
+            return Ok();
         }
     }
 }
