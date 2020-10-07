@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -9,10 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SpeedRegistry.Business\SpeedRegistry.Business.csproj" />
-    <ProjectReference Include="..\SpeedRegistry.Data.FileSystem\SpeedRegistry.Data.FileSystem.csproj" />
     <ProjectReference Include="..\SpeedRegistry.Data\SpeedRegistry.Data.csproj" />
   </ItemGroup>
-
 
 </Project>
