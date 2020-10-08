@@ -5,6 +5,7 @@ using SpeedRegistry.Data;
 using SpeedRegistry.Data.FileSystem;
 using SpeedRegistry.Data.FileSystem.Repositories;
 using SpeedRegistry.Data.Repositories;
+using System;
 
 namespace SpeedRegistry.Config
 {
@@ -22,6 +23,7 @@ namespace SpeedRegistry.Config
             services.AddScoped<IUnitOfWorkFactory, UnitOfWorkFactory>();
 
             // Misc
+            services.AddSingleton<Random>();
         }
     }
 }

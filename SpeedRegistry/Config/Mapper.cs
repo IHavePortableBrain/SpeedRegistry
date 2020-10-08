@@ -28,7 +28,8 @@ namespace SpeedRegistry.Config
         }
 
         public static IProfileExpression AddDtoToDalMappings(this IProfileExpression cfg)
-        {         
+        {
+            cfg.CreateMap<SpeedEntryDto, SpeedEntry>();
             return cfg;
         }
 

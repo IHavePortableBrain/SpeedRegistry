@@ -21,16 +21,26 @@ namespace SpeedRegistry.Controllers
         }
 
         [HttpGet]
-        public async Task<IEnumerable<SpeedEntryDto>> Get()
+        [Route("entries")]
+        public async Task<IEnumerable<SpeedEntryDto>> GetAllEntriesAsync()
         {
             var result = await _speedControllerService.GetSpeedEntriesAsync();
             return result;
         }
 
         [HttpPost]
-        public async Task<ActionResult> PostAsync()
+        [Route("entries")]
+        public async Task<ActionResult> PostCreateEntryAsync(SpeedEntryDto model)
         {
-            await _speedControllerService.SaveSomeSpeedEntriesAsync();
+            await _speedControllerService.CreateSpeedEntryAsync(model);
+            return Ok();
+        }
+
+        [HttpPost]
+        [Route("entries/test")]
+        public async Task<ActionResult> PostCreateTestEntriesAsync()
+        {
+            await _speedControllerService.CreateTestEntriesAsync();
             return Ok();
         }
     }

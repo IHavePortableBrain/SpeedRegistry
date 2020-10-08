@@ -18,7 +18,7 @@ namespace SpeedRegistry.Data.FileSystem.Repositories
         public long LastMethodElapsedMilliseconds { get; private set; }
         
         public const string JsonExtension = ".json"; // todo: have a constants class.
-        public const string EmptyJsonArray = "[]";
+        public const string EmptyJsonArray = "[]"; // todo: json has storage overhead that can be reduced with use of custom text parser | storage format.
         public const string Directory = "speed";
         public static readonly long ClusterSize = new TimeSpan(1, 0, 0, 0).Ticks;
         public static readonly Encoding Encoding = Encoding.UTF8;
@@ -28,38 +28,42 @@ namespace SpeedRegistry.Data.FileSystem.Repositories
             System.IO.Directory.CreateDirectory(Directory);
         }
 
-        public async Task<SpeedEntry> CreateAsync(SpeedEntry entity) //since inserts to old files are not done, and entities ordered by time
+        public async Task<SpeedEntry> CreateAsync(SpeedEntry entity)
         {
-            var timer = Stopwatch.StartNew();
-            var fileName = GetClusterFileName(entity.DateTime.Ticks);
-            var filePath = Path.Combine(Directory, fileName);
-
-            if (!File.Exists(filePath))
-            {
-                using (var file = new FileStream(filePath, FileMode.CreateNew, FileAccess.Write))
-                using (var sw = new StreamWriter(file))
-                {
-                    await sw.WriteAsync(EmptyJsonArray);
-                }
-            }
-
-            using (var file = new FileStream(filePath, FileMode.Open, FileAccess.Write))
-            {
-                var json = (file.Length > Encoding.GetByteCount(EmptyJsonArray) ? "," : string.Empty) // is not correct for jsons with indentions | spaces chars, but file will have neither indention or spaces
-                    + JsonConvert.SerializeObject(entity) + "]";
-                var insertionPostion = -Encoding.GetByteCount("]");
-                file.Seek(insertionPostion, SeekOrigin.End);
-                var jsonBytes = Encoding.GetBytes(json);
-                await file.WriteAsync(jsonBytes, 0, json.Length);
-            }
-
-            StopTimer(timer);
-            return entity;
+            return (await CreateRangeAsync(new List<SpeedEntry> { entity })).FirstOrDefault();
         }
 
-        public void CreateRangeAsync(IEnumerable<SpeedEntry> entities)
+        public async Task<IEnumerable<SpeedEntry>> CreateRangeAsync(IEnumerable<SpeedEntry> entities)
         {
-            throw new NotImplementedException();
+            var timer = Stopwatch.StartNew();
+            var entitiesByFilePath = entities
+                .GroupBy(e => Path.Combine(Directory, GetClusterFileName(e.DateTime.Ticks)), e => e)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var partitioner = Partitioner.Create(entitiesByFilePath);
+            //Parallel.ForEach(partitioner, p =>
+            foreach (var kvp in entitiesByFilePath)
+            {
+                InitEmptyArrayJson(kvp.Key);
+
+                using (var file = new FileStream(kvp.Key, FileMode.Open, FileAccess.Write))
+                {
+                    var json = (file.Length > Encoding.GetByteCount(EmptyJsonArray) ? "," : string.Empty) // is not correct for jsons with indentions | spaces chars, but file will have neither indention or spaces
+                        + JsonConvert.SerializeObject(kvp.Value).Trim('[', ']')
+                        + "]";
+                    var insertionPostion = -Encoding.GetByteCount("]");
+                    file.Seek(insertionPostion, SeekOrigin.End);
+                    var jsonBytes = Encoding.GetBytes(json);
+                    await file.WriteAsync(jsonBytes, 0, json.Length);
+                }
+            }
+            StopTimer(timer);
+            return entities;
+        }
+
+        public void CreateSortedRangeAsync(IEnumerable<SpeedEntry> entities)
+        {
+            throw new NotImplementedException(); // possible optimization based on fact that sensors take speed entires with strict ascending order
         }
 
         public async Task<IEnumerable<SpeedEntry>> FilterAsync(ClosedPeriod period, Func<SpeedEntry, bool> predicate)
@@ -68,9 +72,9 @@ namespace SpeedRegistry.Data.FileSystem.Repositories
             var timer = Stopwatch.StartNew();
             var fileNames = GetOverrlappedClusterFileNames(period);
             var filePaths = fileNames.Select(n => Path.Combine(Directory, n));
-            var existingPathes = filePaths.Where(p => File.Exists(p));
+            var existingPaths = filePaths.Where(p => File.Exists(p));
             var entries = new ConcurrentBag<SpeedEntry>();
-            var partitioner = Partitioner.Create(existingPathes);
+            var partitioner = Partitioner.Create(existingPaths);
             Parallel.ForEach(partitioner, p =>
             //foreach (var p in existingPathes)
             {
@@ -93,10 +97,22 @@ namespace SpeedRegistry.Data.FileSystem.Repositories
             return result;
         }
 
+        private void InitEmptyArrayJson(string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                using (var file = new FileStream(filePath, FileMode.CreateNew, FileAccess.Write))
+                {
+                    var bytes = Encoding.GetBytes(EmptyJsonArray);
+                    file.Write(bytes);
+                }
+            }
+        }
+
         private void StopTimer(Stopwatch timer)
         {
             timer.Stop();
-            var callerMethodName = new StackTrace().GetFrame(1).GetMethod().Name;
+            var callerMethodName = new StackTrace().GetFrame(4).GetMethod().Name;// todo: is not proper. Frame 4 was proper in particular case. 
             LastMethodElapsedMilliseconds = timer.ElapsedMilliseconds;
             Console.WriteLine($"Method '{callerMethodName}' elapsed {timer.ElapsedMilliseconds} ms");
         }

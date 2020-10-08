@@ -10,9 +10,7 @@ namespace SpeedRegistry.Data.Repositories
         where T : class
     {
         Task<T> CreateAsync(T entity);
-
-        void CreateRangeAsync(IEnumerable<T> entities);
-
-        Task<IEnumerable<SpeedEntry>> FilterAsync(ClosedPeriod period, Func<SpeedEntry, bool> predicate);
+        Task<IEnumerable<T>> CreateRangeAsync(IEnumerable<T> entities);
+        Task<IEnumerable<T>> FilterAsync(ClosedPeriod period, Func<T, bool> predicate);
     }
 }
