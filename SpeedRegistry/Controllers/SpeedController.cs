@@ -21,9 +21,10 @@ namespace SpeedRegistry.Controllers
         }
 
         [HttpGet]
-        public IEnumerable<SpeedEntryDto> Get()
+        public async Task<IEnumerable<SpeedEntryDto>> Get()
         {
-            return new SpeedEntryDto[] { new SpeedEntryDto() { Speed = 12.2f } };
+            var result = await _speedControllerService.GetSpeedEntriesAsync();
+            return result;
         }
 
         [HttpPost]
