@@ -85,10 +85,10 @@ namespace SpeedRegistry.Business.ControllerServices
         {
             using (var uow = UnitOfWorkFactory.Build())
             {
-                var fromTicks = DateTime.UtcNow.AddDays(-1).Ticks;
+                var fromTicks = DateTime.UtcNow.AddDays(-365).Ticks;
                 var toTicks = DateTime.UtcNow.AddDays(0).Ticks;
                 var entries = new List<SpeedEntry>();
-                for (int i = 0; i < 100; i++)
+                for (int i = 0; i < 27882398; i++)
                 {
                     entries.Add(new SpeedEntry
                     {
