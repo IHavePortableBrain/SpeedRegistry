@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using SpeedRegistry.Business.ControllerServices;
 using SpeedRegistry.Business.Dto;
+using SpeedRegistry.Core;
 
 namespace SpeedRegistry.Controllers
 {
@@ -22,17 +23,41 @@ namespace SpeedRegistry.Controllers
 
         [HttpGet]
         [Route("entries")]
-        public async Task<IEnumerable<SpeedEntryDto>> GetAllEntriesAsync()
+        public async Task<ActionResult<IEnumerable<SpeedEntryDto>>> GetAllEntriesAsync()
         {
-            var result = await _speedControllerService.GetSpeedEntriesAsync();
-            return result;
+            var result = await _speedControllerService.GetAllEntriesAsync();
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("entries/over-speed")]
+        public async Task<ActionResult<IEnumerable<SpeedEntryDto>>> GetOverSpeedEntriesAsync([FromQuery]GetMinMaxSpeedEntryDto dto)
+        {
+            var result = await _speedControllerService.GetOverSpeedEntriesAsync(dto);
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("entries/min-max")]
+        public async Task<ActionResult<MinMaxSpeedEntryDto>> GetMinMaxSpeedEntriesAsync([FromQuery] ClosedPeriod period)
+        {
+            var result = await _speedControllerService.GetMinMaxSpeedEntriesAsync(period);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("entries/{id}")]
+        public async Task<ActionResult> PostCreateEntryAsync(SpeedEntryDto dto)
+        {
+            await _speedControllerService.CreateSpeedEntryAsync(dto);
+            return Ok();
         }
 
         [HttpPost]
         [Route("entries")]
-        public async Task<ActionResult> PostCreateEntryAsync(SpeedEntryDto model)
+        public async Task<ActionResult> PostCreateEntriesAsync(IEnumerable<SpeedEntryDto> dtos)
         {
-            await _speedControllerService.CreateSpeedEntryAsync(model);
+            await _speedControllerService.CreateSpeedEntriesAsync(dtos);
             return Ok();
         }
 

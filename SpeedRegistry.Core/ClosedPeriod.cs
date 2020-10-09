@@ -2,7 +2,7 @@
 
 namespace SpeedRegistry.Core
 {
-    public struct ClosedPeriod
+    public class ClosedPeriod
     {
         public DateTime From { get; set; }
 

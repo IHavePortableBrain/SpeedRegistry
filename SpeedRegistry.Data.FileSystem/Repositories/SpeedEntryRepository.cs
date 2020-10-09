@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using SpeedRegistry.Core;
 using System.Linq;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 
 namespace SpeedRegistry.Data.FileSystem.Repositories
 {
@@ -18,7 +19,7 @@ namespace SpeedRegistry.Data.FileSystem.Repositories
         public long LastMethodElapsedMilliseconds { get; private set; }
         
         public const string JsonExtension = ".json"; // todo: have a constants class.
-        public const string EmptyJsonArray = "[]"; // todo: json has storage overhead that can be reduced with use of custom text parser | storage format.
+        public const string EmptyJsonArray = "[]"; // todo: json has storage overhead that can be reduced with use of custom text parser & storage format.
         public const string Directory = "speed";
         public static readonly long ClusterSize = new TimeSpan(1, 0, 0, 0).Ticks;
         public static readonly Encoding Encoding = Encoding.UTF8;
@@ -26,6 +27,7 @@ namespace SpeedRegistry.Data.FileSystem.Repositories
         public SpeedEntryRepository()
         {
             System.IO.Directory.CreateDirectory(Directory);
+            // todo: scan repo directory to determin MinStoredEntryDateTime ( = min ticks in file names) and Max ( = max ticks + ClusterSize). Then truncate all read requests to that period. Maintain new fields concistency on each write operation.
         }
 
         public async Task<SpeedEntry> CreateAsync(SpeedEntry entity)
@@ -66,18 +68,19 @@ namespace SpeedRegistry.Data.FileSystem.Repositories
             throw new NotImplementedException(); // possible optimization based on fact that sensors take speed entires with strict ascending order
         }
 
-        public async Task<IEnumerable<SpeedEntry>> FilterAsync(ClosedPeriod period, Func<SpeedEntry, bool> predicate)
+        public async Task<IEnumerable<SpeedEntry>> FilterAsync(ClosedPeriod period, Func<SpeedEntry, bool> predicate) // todo: being killed when period.from --> dateTime.min and period.to --> dateTime.max
         {
             await Task.CompletedTask;
             var timer = Stopwatch.StartNew();
             var fileNames = GetOverrlappedClusterFileNames(period);
             var filePaths = fileNames.Select(n => Path.Combine(Directory, n));
-            var existingPaths = filePaths.Where(p => File.Exists(p));
+            // var existingPaths = filePaths.Where(p => File.Exists(p));
             var entries = new ConcurrentBag<SpeedEntry>();
-            var partitioner = Partitioner.Create(existingPaths);
+            var partitioner = Partitioner.Create(filePaths);
             Parallel.ForEach(partitioner, p =>
-            //foreach (var p in existingPathes)
+            //foreach (var p in filePaths)
             {
+                if (File.Exists(p))
                 using (var file = new FileStream(p, FileMode.Open, FileAccess.Read))
                 {
                     var bytes = new byte[file.Length];
@@ -109,12 +112,12 @@ namespace SpeedRegistry.Data.FileSystem.Repositories
             }
         }
 
-        private void StopTimer(Stopwatch timer)
+        private void StopTimer(Stopwatch timer, [CallerMemberName] string callerName = "SpeedEntryRepository.SomeMethod")
         {
             timer.Stop();
-            var callerMethodName = new StackTrace().GetFrame(4).GetMethod().Name;// todo: is not proper. Frame 4 was proper in particular case. 
+            //var callerMethodName = new StackTrace().GetFrame(4).GetMethod().Name;// todo: is not proper. Frame 4 was proper in particular case. 
             LastMethodElapsedMilliseconds = timer.ElapsedMilliseconds;
-            Console.WriteLine($"Method '{callerMethodName}' elapsed {timer.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Method '{callerName}' elapsed {timer.ElapsedMilliseconds} ms");
         }
 
         private string GetClusterFileName(long ticks)
