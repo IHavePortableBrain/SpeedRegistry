@@ -4,6 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SpeedRegistry.Config;
+using SpeedRegistry.Core.Settings;
+using SpeedRegistry.Middlewares;
 
 namespace SpeedRegistry
 {
@@ -19,6 +21,7 @@ namespace SpeedRegistry
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<AppSettings>(Configuration.GetSection(nameof(AppSettings)));
             services.AddControllers();
             services.AddSpeedRegistryServices(Configuration);
             services.AddMapper();
@@ -32,12 +35,11 @@ namespace SpeedRegistry
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseMiddleware(typeof(ErrorWrappingMiddleware));
+            app.UseMiddleware(typeof(ServiceTimeCheckMiddleware));
             app.UseHttpsRedirection();
-
             app.UseRouting();
-
             app.UseAuthorization();
-
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();

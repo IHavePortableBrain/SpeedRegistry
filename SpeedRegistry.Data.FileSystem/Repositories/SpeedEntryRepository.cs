@@ -27,7 +27,7 @@ namespace SpeedRegistry.Data.FileSystem.Repositories
         public SpeedEntryRepository()
         {
             System.IO.Directory.CreateDirectory(Directory);
-            // todo: scan repo directory to determin MinStoredEntryDateTime ( = min ticks in file names) and Max ( = max ticks + ClusterSize). Then truncate all read requests to that period. Maintain new fields concistency on each write operation.
+            // todo: scan repo directory to determine MinStoredEntryDateTime ( = min ticks in file names) and Max ( = max ticks + ClusterSize). Then truncate all read requests to that period. Maintain new fields consistency on each write operation.
         }
 
         public async Task<SpeedEntry> CreateAsync(SpeedEntry entity)
@@ -115,7 +115,6 @@ namespace SpeedRegistry.Data.FileSystem.Repositories
         private void StopTimer(Stopwatch timer, [CallerMemberName] string callerName = "SpeedEntryRepository.SomeMethod")
         {
             timer.Stop();
-            //var callerMethodName = new StackTrace().GetFrame(4).GetMethod().Name;// todo: is not proper. Frame 4 was proper in particular case. 
             LastMethodElapsedMilliseconds = timer.ElapsedMilliseconds;
             Console.WriteLine($"Method '{callerName}' elapsed {timer.ElapsedMilliseconds} ms");
         }
